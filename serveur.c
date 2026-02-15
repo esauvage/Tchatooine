@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <natpmp.h>
 
-#define PORT 1234
+#define PORT 1237
 #define BUFFER_SIZE 1024
 
 struct data_envoyer_messages {
@@ -30,8 +30,8 @@ void generer_nonce(uint8_t nonce[12]) {
         uint8_t data[50];
         while (fgets((char *)data, 50, f) != NULL) {
 
-            // Print the data
-            // printf("Nonce : %s\n", data);
+                   // Print the data
+                   // printf("Nonce : %s\n", data);
             strcpy((char *)nonce, (char *)data);
         }
     }
@@ -48,8 +48,8 @@ void generer_cle(uint8_t cle[32]) {
         uint8_t data[50];
         while (fgets((char *)data, 50, f) != NULL) {
 
-            // Print the data
-            // printf("Clé : %s\n", data);
+                   // Print the data
+                   // printf("Clé : %s\n", data);
             strcpy((char *)cle, (char *)data);
         }
     }
@@ -81,7 +81,7 @@ void *envoyer_messages(void *arg) {
     chacha20_init_context(&ctx, cle, nonce, 0);
     chacha20_xor(&ctx, pseudo_chiffre, strlen(data.pseudo));
 
-    // On envoie le pseudo
+           // On envoie le pseudo
     send(data.fd, pseudo_chiffre, strlen(data.pseudo), 0);
 
     while (1) {
@@ -159,7 +159,7 @@ void recevoir_messages(int client_sock) {
 
         buffer[bytes] = '\0';
 
-        // convertir_msg(msg_dechiffre, buffer);
+               // convertir_msg(msg_dechiffre, buffer);
         memcpy(msg_dechiffre, buffer, strlen(buffer));
 
         chacha20_init_context(&ctx, cle, nonce, 0);
@@ -205,11 +205,11 @@ void redirect(uint16_t privateport, uint16_t publicport, natpmp_t *natpmp)
     //     r = readnatpmpresponseorretry(&natpmp, &response);
     // } while(r==NATPMP_TRYAGAIN);
 
-    // printf("mapped public port %hu to localport %hu liftime %u\n",
-    //        response.pnu.newportmapping.mappedpublicport,
-    //        response.pnu.newportmapping.privateport,
-    //        response.pnu.newportmapping.lifetime);
-    // closenatpmp(&natpmp);
+           // printf("mapped public port %hu to localport %hu liftime %u\n",
+           //        response.pnu.newportmapping.mappedpublicport,
+           //        response.pnu.newportmapping.privateport,
+           //        response.pnu.newportmapping.lifetime);
+           // closenatpmp(&natpmp);
     natpmpresp_t response;
     struct in_addr publicaddress;
     enum { Sinit=0, Ssendpub, Srecvpub, Ssendmap, Srecvmap, Sdone, Serror=1000 } natpmpstate = Sinit;
@@ -255,16 +255,17 @@ void redirect(uint16_t privateport, uint16_t publicport, natpmp_t *natpmp)
                 // closenatpmp(natpmp);
                 natpmpstate = Sdone;
             }
+            finished_all_init_stuff++;
             break;
         }
-        finished_all_init_stuff++;
     }
+    // printf("natpmpstate : %d", natpmpstate);
 }
 
 int main(int argc, char **argv) {
     natpmp_t natpmp;
-    uint16_t portPublic = 1234;
-    uint16_t portPrive = 1234;
+    uint16_t portPublic = 1237;
+    uint16_t portPrive = 1237;
 
     redirect(portPrive, portPublic, &natpmp);
 
@@ -296,9 +297,9 @@ int main(int argc, char **argv) {
     }
 
     if (connect(client_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-       // perror("connect");
-       // return 1;
-        puts("Client non connecté, passage en mode serveur...");
+        // perror("connect");
+        // return 1;
+        puts("Pair non connecté, passage en mode serveur...");
         mode = 1;
     }
     else
