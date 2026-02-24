@@ -15,7 +15,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT 1237
+#define PORT 1236
 #define BUFFER_SIZE 1024
 
 struct data_envoyer_messages {
@@ -112,9 +112,7 @@ void *envoyer_messages(void *arg) {
         if (strcmp(msg, "exit") == 0) {
             // send(sock, msg, strlen(msg), 0);
             send(data.fd, msg_en_nombres, strlen(msg), 0);
-            // puts("Let's go for quit !");
-            // break;
-            return NULL;
+            break;
         }
 
         if (msg[0] != '\0') {
@@ -124,6 +122,7 @@ void *envoyer_messages(void *arg) {
 
         free(msg_en_nombres);
     }
+    // puts("DEBUG : Je ferme le thread envoyer_messages...");
     return NULL;
 }
 
@@ -149,7 +148,7 @@ void recevoir_messages(int client_sock) {
     memcpy(pseudo_dechiffre, pseudo, BUFFER_SIZE);
 
     chacha20_init_context(&ctx, cle, nonce, 0);
-    chacha20_xor(&ctx, pseudo_dechiffre, strlen(pseudo));
+    chacha20_xor(&ctx, (uint8_t *)pseudo_dechiffre, strlen(pseudo));
 
     printf("Pseudo : %s\n", pseudo_dechiffre);
 
@@ -198,26 +197,6 @@ int cli_parser(int argc, char **argv, char pseudo[BUFFER_SIZE]) {
 
 int redirectNATPMP(uint16_t privateport, uint16_t publicport,
                    natpmp_t *natpmp) {
-    // int r;
-    // natpmp_t natpmp;
-    // natpmpresp_t response;
-    // initnatpmp(&natpmp, 0, 0);
-    // sendnewportmappingrequest(&natpmp, NATPMP_PROTOCOL_TCP, privateport,
-    // publicport, 3600); do {
-    //     fd_set fds;
-    //     struct timeval timeout;
-    //     FD_ZERO(&fds);
-    //     FD_SET(natpmp.s, &fds);
-    //     getnatpmprequesttimeout(&natpmp, &timeout);
-    //     select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
-    //     r = readnatpmpresponseorretry(&natpmp, &response);
-    // } while(r==NATPMP_TRYAGAIN);
-
-    // printf("mapped public port %hu to localport %hu liftime %u\n",
-    //        response.pnu.newportmapping.mappedpublicport,
-    //        response.pnu.newportmapping.privateport,
-    //        response.pnu.newportmapping.lifetime);
-    // closenatpmp(&natpmp);
     natpmpresp_t response;
     struct in_addr publicaddress;
     enum {
@@ -232,6 +211,8 @@ int redirectNATPMP(uint16_t privateport, uint16_t publicport,
     int r;
     int lifetime = 3600;
     uint32_t mappinglifetime;
+    int nbEssais = 3;
+
     if (initnatpmp(natpmp, 0, 0) < 0)
         natpmpstate = Serror;
     else
@@ -255,7 +236,11 @@ int redirectNATPMP(uint16_t privateport, uint16_t publicport,
                 natpmpstate = Ssendmap;
             } else {
                 // Juste du debug
-                natpmpstate = Serror;
+                // natpmpstate = Serror;
+                if (nbEssais)
+                    nbEssais--;
+                else
+                    natpmpstate = Serror;
             }
             break;
         case Ssendmap:
@@ -287,10 +272,12 @@ int redirectNATPMP(uint16_t privateport, uint16_t publicport,
     // printf("natpmpstate : %d", natpmpstate);
 }
 
-int redirectUPnP(uint16_t portPublic, uint16_t portPrive) {
-    struct UPNPDev *devlist = NULL;
+int redirectUPnP(uint16_t portPublic, uint16_t portPrive,
+                 struct UPNPDev *devlist, struct UPNPUrls *urls,
+                 struct IGDdatas *data) {
+    /*struct UPNPDev *devlist = NULL;
     struct UPNPUrls urls;
-    struct IGDdatas data;
+    struct IGDdatas data;*/
     int error = 0;
 
     char strPortPublic[10];
@@ -310,7 +297,7 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive) {
     }
 
     int status =
-        UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+        UPNP_GetValidIGD(devlist, urls, data, lanaddr, sizeof(lanaddr));
 
     if (status != 1) {
         printf("Aucun IGD valide trouvé.\n");
@@ -319,7 +306,7 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive) {
     }
     printf("IGD trouvé ! IP locale : %s\n", lanaddr);
 
-    int result = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
+    int result = UPNP_AddPortMapping(urls->controlURL, data->first.servicetype,
                                      strPortPublic, strPortPrive, lanaddr,
                                      "Serveur Tchatooine", "TCP", NULL, "0");
 
@@ -329,21 +316,26 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive) {
         printf("Port %s ouvert avec succès !\n", strPortPublic);
     }
 
-    FreeUPNPUrls(&urls);
-    freeUPNPDevlist(devlist);
-
     return 0;
 }
 
 int main(int argc, char **argv) {
     natpmp_t natpmp;
-    uint16_t portPublic = 1237;
-    uint16_t portPrive = 1237;
+    uint16_t portPublic = 1236;
+    uint16_t portPrive = 1236;
+
+    char strPortPublic[10];
+    sprintf(strPortPublic, "%d", portPublic);
+
+    struct UPNPDev *devlist = NULL;
+    struct UPNPUrls urls;
+    struct IGDdatas data;
 
     int resNATPMP = redirectNATPMP(portPrive, portPublic, &natpmp);
-    int resUPnP = 0;
+    int resUPnP = 1;
     if (resNATPMP)
-        resUPnP = redirectUPnP(portPublic, portPrive);
+        resUPnP = redirectUPnP(portPublic, portPrive, devlist, &urls, &data);
+
     if (resUPnP) {
         puts("La redirection de ports a échouer, veuillez ouvrir un port sur "
              "votre routeur manuellement");
@@ -426,6 +418,7 @@ int main(int argc, char **argv) {
 
     pthread_t thread_envoyer;
     pthread_create(&thread_envoyer, NULL, envoyer_messages, &datas);
+
     recevoir_messages(client_fd);
 
     pthread_cancel(thread_envoyer);
@@ -437,6 +430,14 @@ int main(int argc, char **argv) {
     printf("Tchatooine fermé\n");
     free(datas.pseudo);
 
-    closenatpmp(&natpmp);
+    if (resUPnP)
+        closenatpmp(&natpmp);
+    else {
+        UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
+                               strPortPublic, "TCP", NULL);
+    }
+    FreeUPNPUrls(&urls);
+    freeUPNPDevlist(devlist);
+
     return 0;
 }
