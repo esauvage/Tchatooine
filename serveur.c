@@ -1,6 +1,10 @@
 #include "chacha20-c/chacha20.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
+#include <natpmp.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -10,7 +14,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <natpmp.h>
 
 #define PORT 1237
 #define BUFFER_SIZE 1024
@@ -30,8 +33,8 @@ void generer_nonce(uint8_t nonce[12]) {
         uint8_t data[50];
         while (fgets((char *)data, 50, f) != NULL) {
 
-                   // Print the data
-                   // printf("Nonce : %s\n", data);
+            // Print the data
+            // printf("Nonce : %s\n", data);
             strcpy((char *)nonce, (char *)data);
         }
     }
@@ -48,8 +51,8 @@ void generer_cle(uint8_t cle[32]) {
         uint8_t data[50];
         while (fgets((char *)data, 50, f) != NULL) {
 
-                   // Print the data
-                   // printf("Clé : %s\n", data);
+            // Print the data
+            // printf("Clé : %s\n", data);
             strcpy((char *)cle, (char *)data);
         }
     }
@@ -81,7 +84,7 @@ void *envoyer_messages(void *arg) {
     chacha20_init_context(&ctx, cle, nonce, 0);
     chacha20_xor(&ctx, pseudo_chiffre, strlen(data.pseudo));
 
-           // On envoie le pseudo
+    // On envoie le pseudo
     send(data.fd, pseudo_chiffre, strlen(data.pseudo), 0);
 
     while (1) {
@@ -109,12 +112,15 @@ void *envoyer_messages(void *arg) {
         if (strcmp(msg, "exit") == 0) {
             // send(sock, msg, strlen(msg), 0);
             send(data.fd, msg_en_nombres, strlen(msg), 0);
-            break;
+            puts("Let's go for quit !");
+            // break;
+            return NULL;
         }
 
-        if (msg[0] != '\0')
+        if (msg[0] != '\0') {
             // send(sock, msg, strlen(msg), 0);
             send(data.fd, msg_en_nombres, strlen(msg), 0);
+        }
 
         free(msg_en_nombres);
     }
@@ -159,7 +165,9 @@ void recevoir_messages(int client_sock) {
 
         buffer[bytes] = '\0';
 
-               // convertir_msg(msg_dechiffre, buffer);
+        // puts("Passes-tu ici ?");
+
+        // convertir_msg(msg_dechiffre, buffer);
         memcpy(msg_dechiffre, buffer, strlen(buffer));
 
         chacha20_init_context(&ctx, cle, nonce, 0);
@@ -188,14 +196,14 @@ int cli_parser(int argc, char **argv, char pseudo[BUFFER_SIZE]) {
     return 0;
 }
 
-void redirect(uint16_t *privateport, uint16_t *publicport, natpmp_t *natpmp)
-{
+int redirectNATPMP(uint16_t privateport, uint16_t publicport,
+                   natpmp_t *natpmp) {
     // int r;
     // natpmp_t natpmp;
     // natpmpresp_t response;
     // initnatpmp(&natpmp, 0, 0);
-    // sendnewportmappingrequest(&natpmp, NATPMP_PROTOCOL_TCP, privateport, publicport, 3600);
-    // do {
+    // sendnewportmappingrequest(&natpmp, NATPMP_PROTOCOL_TCP, privateport,
+    // publicport, 3600); do {
     //     fd_set fds;
     //     struct timeval timeout;
     //     FD_ZERO(&fds);
@@ -205,62 +213,126 @@ void redirect(uint16_t *privateport, uint16_t *publicport, natpmp_t *natpmp)
     //     r = readnatpmpresponseorretry(&natpmp, &response);
     // } while(r==NATPMP_TRYAGAIN);
 
-           // printf("mapped public port %hu to localport %hu liftime %u\n",
-           //        response.pnu.newportmapping.mappedpublicport,
-           //        response.pnu.newportmapping.privateport,
-           //        response.pnu.newportmapping.lifetime);
-           // closenatpmp(&natpmp);
+    // printf("mapped public port %hu to localport %hu liftime %u\n",
+    //        response.pnu.newportmapping.mappedpublicport,
+    //        response.pnu.newportmapping.privateport,
+    //        response.pnu.newportmapping.lifetime);
+    // closenatpmp(&natpmp);
     natpmpresp_t response;
     struct in_addr publicaddress;
-    enum { Sinit=0, Ssendpub, Srecvpub, Ssendmap, Srecvmap, Sdone, Serror=1000 } natpmpstate = Sinit;
+    enum {
+        Sinit = 0,
+        Ssendpub,
+        Srecvpub,
+        Ssendmap,
+        Srecvmap,
+        Sdone,
+        Serror = 1000
+    } natpmpstate = Sinit;
     int r;
     int lifetime = 3600;
     uint32_t mappinglifetime;
-    if(initnatpmp(natpmp, 0, 0) < 0)
+    if (initnatpmp(natpmp, 0, 0) < 0)
         natpmpstate = Serror;
     else
         natpmpstate = Ssendpub;
     char finished_all_init_stuff = 0;
-    while(!finished_all_init_stuff) {
-        switch(natpmpstate) {
+    while (!finished_all_init_stuff) {
+        switch (natpmpstate) {
         case Ssendpub:
-            if(sendpublicaddressrequest(natpmp)<0)
+            if (sendpublicaddressrequest(natpmp) < 0)
                 natpmpstate = Serror;
             else
                 natpmpstate = Srecvpub;
             break;
         case Srecvpub:
             r = readnatpmpresponseorretry(natpmp, &response);
-            if(r<0 && r!=NATPMP_TRYAGAIN)
+            if (r < 0 && r != NATPMP_TRYAGAIN)
                 natpmpstate = Serror;
-            else if(r!=NATPMP_TRYAGAIN) {
-                memcpy(&publicaddress, &response.pnu.publicaddress.addr, sizeof(struct in_addr));
+            else if (r != NATPMP_TRYAGAIN) {
+                memcpy(&publicaddress, &response.pnu.publicaddress.addr,
+                       sizeof(struct in_addr));
                 natpmpstate = Ssendmap;
+            } else {
+                // Juste du debug
+                natpmpstate = Serror;
             }
             break;
         case Ssendmap:
-            if(sendnewportmappingrequest(natpmp, NATPMP_PROTOCOL_TCP, *privateport, *publicport, lifetime)<0)
+            if (sendnewportmappingrequest(natpmp, NATPMP_PROTOCOL_TCP,
+                                          privateport, publicport,
+                                          lifetime) < 0)
                 natpmpstate = Serror;
             else
                 natpmpstate = Srecvmap;
             break;
         case Srecvmap:
             r = readnatpmpresponseorretry(natpmp, &response);
-            if(r<0 && r!=NATPMP_TRYAGAIN)
+            if (r < 0 && r != NATPMP_TRYAGAIN)
                 natpmpstate = Serror;
-            else if(r!=NATPMP_TRYAGAIN) {
-                *publicport = response.pnu.newportmapping.mappedpublicport;
-                *privateport = response.pnu.newportmapping.privateport;
+            else if (r != NATPMP_TRYAGAIN) {
+                publicport = response.pnu.newportmapping.mappedpublicport;
+                privateport = response.pnu.newportmapping.privateport;
                 mappinglifetime = response.pnu.newportmapping.lifetime;
                 // closenatpmp(natpmp);
                 natpmpstate = Sdone;
             }
             finished_all_init_stuff++;
             break;
+        case Serror:
+            return 1;
         }
-        // printf("natpmpstate : %d\n", natpmpstate);
     }
+    return 0;
     // printf("natpmpstate : %d", natpmpstate);
+}
+
+int redirectUPnP(uint16_t portPublic, uint16_t portPrive) {
+    struct UPNPDev *devlist = NULL;
+    struct UPNPUrls urls;
+    struct IGDdatas data;
+    int error = 0;
+
+    char strPortPublic[10];
+    char strPortPrive[10];
+
+    sprintf(strPortPublic, "%d", portPublic);
+    sprintf(strPortPrive, "%d", portPrive);
+
+    char lanaddr[64];
+
+    printf("Recherche d'un IGD...\n");
+    devlist = upnpDiscover(2000, NULL, NULL, 0, 0, 2, &error);
+
+    if (!devlist) {
+        printf("Aucun périphérique UPnP trouvé.\n");
+        return 1;
+    }
+
+    int status =
+        UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+
+    if (status != 1) {
+        printf("Aucun IGD valide trouvé.\n");
+        freeUPNPDevlist(devlist);
+        return 1;
+    }
+    printf("IGD trouvé ! IP locale : %s\n", lanaddr);
+
+    int result = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
+                                     strPortPublic, strPortPrive, lanaddr,
+                                     "Serveur Tchatooine", "TCP", NULL, "0");
+
+    if (result != UPNPCOMMAND_SUCCESS) {
+        printf("Erreur ouverture port: %s\n", strupnperror(result));
+    } else {
+        printf("Port %s ouvert avec succès !\n", strPortPublic);
+    }
+
+    FreeUPNPUrls(&urls);
+    freeUPNPDevlist(devlist);
+
+    return 0;
 }
 
 int main(int argc, char **argv) {
@@ -268,7 +340,15 @@ int main(int argc, char **argv) {
     uint16_t portPublic = 1237;
     uint16_t portPrive = 1237;
 
-    redirect(&portPrive, &portPublic, &natpmp);
+    int resNATPMP = redirectNATPMP(portPrive, portPublic, &natpmp);
+    int resUPnP = 0;
+    if (resNATPMP)
+        resUPnP = redirectUPnP(portPublic, portPrive);
+    if (resUPnP) {
+        puts("La redirection de ports a échouer, veuillez ouvrir un port sur "
+             "votre routeur manuellement");
+        return 0;
+    }
 
     char pseudo[BUFFER_SIZE];
     if (cli_parser(argc, argv, pseudo)) {
@@ -290,11 +370,11 @@ int main(int argc, char **argv) {
     }
 
     address.sin_family = AF_INET;
-    address.sin_port = htons(portPublic);
+    address.sin_port = htons(PORT);
 
-    // 87.88.38.108
-    if (inet_pton(AF_INET, "87.88.38.108", &address.sin_addr) <= 0) {
-        perror("inet_pton");
+    // 81.250.70.0
+    if (inet_pton(AF_INET, "81.250.70.0", &address.sin_addr) <= 0) {
+        // perror("inet_pton");
         mode = 1;
     }
 
@@ -303,16 +383,11 @@ int main(int argc, char **argv) {
         // return 1;
         puts("Pair non connecté, passage en mode serveur...");
         mode = 1;
-    }
-    else
-    {
+    } else {
         puts("Connecté au serveur avec succès");
     }
 
-    puts("Oui !");
-
-    if (mode == 1)
-    {
+    if (mode == 1) {
         fd = socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
             perror("socket");
@@ -324,7 +399,7 @@ int main(int argc, char **argv) {
 
         address2.sin_family = AF_INET;
         address2.sin_addr.s_addr = INADDR_ANY;
-        address2.sin_port = htons(portPrive);
+        address2.sin_port = htons(PORT);
 
         if (bind(fd, (struct sockaddr *)&address2, sizeof(address2)) < 0) {
             perror("bind");
@@ -335,7 +410,7 @@ int main(int argc, char **argv) {
             perror("listen");
             exit(EXIT_FAILURE);
         }
-        printf("Serveur en attente sur le port %d\n", portPrive);
+        printf("Serveur en attente sur le port %d\n", PORT);
         client_fd = accept(fd, (struct sockaddr *)&address2, &addrlen);
         if (client_fd < 0) {
             perror("accept");
