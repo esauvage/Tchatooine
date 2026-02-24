@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 13.0.0, 2026-02-14T15:29:45. -->
+<!-- Written by QtCreator 13.0.0, 2026-02-14T18:10:40. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -243,7 +243,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/nsauvage/Programation/C-C++/Tchatooine/TchatooineSever.pro</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/nsauvage/Programation/C-C++/Tchatooine/TchatooineSever.pro</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
-    <value type="QString" key="RunConfiguration.Arguments">--pseudo &quot;toto&quot;</value>
+    <value type="QString" key="RunConfiguration.Arguments">--pseudo &quot;toto&quot; -ip &quot;87.88.38.108&quot;</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>

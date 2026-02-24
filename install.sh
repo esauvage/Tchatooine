@@ -6,5 +6,6 @@ if [! -f "/bin/gcc" ]; then
 fi
 
 sudo apt-get install libnatpmp-dev
-
 gcc serveur.c chacha20-c/chacha20.c -o serveur -lnatpmp
+mv serveur Tchatooine
+sudo cp Tchatooine /bin

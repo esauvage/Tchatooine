@@ -188,7 +188,7 @@ int cli_parser(int argc, char **argv, char pseudo[BUFFER_SIZE]) {
     return 0;
 }
 
-void redirect(uint16_t privateport, uint16_t publicport, natpmp_t *natpmp)
+void redirect(uint16_t *privateport, uint16_t *publicport, natpmp_t *natpmp)
 {
     // int r;
     // natpmp_t natpmp;
@@ -239,7 +239,7 @@ void redirect(uint16_t privateport, uint16_t publicport, natpmp_t *natpmp)
             }
             break;
         case Ssendmap:
-            if(sendnewportmappingrequest(natpmp, NATPMP_PROTOCOL_TCP, privateport, publicport, lifetime)<0)
+            if(sendnewportmappingrequest(natpmp, NATPMP_PROTOCOL_TCP, *privateport, *publicport, lifetime)<0)
                 natpmpstate = Serror;
             else
                 natpmpstate = Srecvmap;
@@ -249,8 +249,8 @@ void redirect(uint16_t privateport, uint16_t publicport, natpmp_t *natpmp)
             if(r<0 && r!=NATPMP_TRYAGAIN)
                 natpmpstate = Serror;
             else if(r!=NATPMP_TRYAGAIN) {
-                publicport = response.pnu.newportmapping.mappedpublicport;
-                privateport = response.pnu.newportmapping.privateport;
+                *publicport = response.pnu.newportmapping.mappedpublicport;
+                *privateport = response.pnu.newportmapping.privateport;
                 mappinglifetime = response.pnu.newportmapping.lifetime;
                 // closenatpmp(natpmp);
                 natpmpstate = Sdone;
@@ -258,6 +258,7 @@ void redirect(uint16_t privateport, uint16_t publicport, natpmp_t *natpmp)
             finished_all_init_stuff++;
             break;
         }
+        // printf("natpmpstate : %d\n", natpmpstate);
     }
     // printf("natpmpstate : %d", natpmpstate);
 }
@@ -267,7 +268,7 @@ int main(int argc, char **argv) {
     uint16_t portPublic = 1237;
     uint16_t portPrive = 1237;
 
-    redirect(portPrive, portPublic, &natpmp);
+    redirect(&portPrive, &portPublic, &natpmp);
 
     char pseudo[BUFFER_SIZE];
     if (cli_parser(argc, argv, pseudo)) {
@@ -289,10 +290,11 @@ int main(int argc, char **argv) {
     }
 
     address.sin_family = AF_INET;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(portPublic);
 
+    // 87.88.38.108
     if (inet_pton(AF_INET, "87.88.38.108", &address.sin_addr) <= 0) {
-        // perror("inet_pton");
+        perror("inet_pton");
         mode = 1;
     }
 
@@ -307,6 +309,8 @@ int main(int argc, char **argv) {
         puts("Connecté au serveur avec succès");
     }
 
+    puts("Oui !");
+
     if (mode == 1)
     {
         fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -320,7 +324,7 @@ int main(int argc, char **argv) {
 
         address2.sin_family = AF_INET;
         address2.sin_addr.s_addr = INADDR_ANY;
-        address2.sin_port = htons(PORT);
+        address2.sin_port = htons(portPrive);
 
         if (bind(fd, (struct sockaddr *)&address2, sizeof(address2)) < 0) {
             perror("bind");
@@ -331,7 +335,7 @@ int main(int argc, char **argv) {
             perror("listen");
             exit(EXIT_FAILURE);
         }
-        printf("Serveur en attente sur le port %d\n", PORT);
+        printf("Serveur en attente sur le port %d\n", portPrive);
         client_fd = accept(fd, (struct sockaddr *)&address2, &addrlen);
         if (client_fd < 0) {
             perror("accept");
