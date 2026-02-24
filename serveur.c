@@ -112,7 +112,7 @@ void *envoyer_messages(void *arg) {
         if (strcmp(msg, "exit") == 0) {
             // send(sock, msg, strlen(msg), 0);
             send(data.fd, msg_en_nombres, strlen(msg), 0);
-            puts("Let's go for quit !");
+            // puts("Let's go for quit !");
             // break;
             return NULL;
         }
