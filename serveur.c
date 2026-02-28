@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
 	int resNATPMP = 1;//redirectNATPMP(portPrive, portPublic, &natpmp);
     int resUPnP = 1;
     if (resNATPMP) {
-        puts("L'ouverture de port avec NAT-PMP a échouée, tentative avec "
+		puts("L'ouverture de port avec NAT-PMP a échoué, tentative avec "
              "UPnP...");
 		resUPnP = redirectUPnP(portPublic, portPrive, devlist, &urls, &data);
     }
@@ -398,68 +398,68 @@ int main(int argc, char **argv) {
 	address.sin_port = portPublic;
 
     // 81.250.70.0
-	if (inet_pton(AF_INET, "87.88.38.108", &address.sin_addr) <= 0) {
+	if (inet_pton(AF_INET, "176.187.157.48", &address.sin_addr) <= 0) {
         // perror("inet_pton");
         mode = 1;
     }
 
 	if (connect(client_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
 	   puts("Pair non connecté, passage en mode serveur...");
-        mode = 1;
+		mode = 1;
 	} else {
 		puts("Connecté au serveur avec succès");
 	}
 
-    if (mode == 1) {
-        fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (fd < 0) {
-            perror("socket");
-            exit(EXIT_FAILURE);
-        }
+	if (mode == 1) {
+		fd = socket(AF_INET, SOCK_STREAM, 0);
+		if (fd < 0) {
+			perror("socket");
+			exit(EXIT_FAILURE);
+		}
 
-        struct sockaddr_in address2;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+		struct sockaddr_in address2;
+		setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-        address2.sin_family = AF_INET;
-        address2.sin_addr.s_addr = INADDR_ANY;
+		address2.sin_family = AF_INET;
+		address2.sin_addr.s_addr = INADDR_ANY;
 		address2.sin_port = htons(portPrive);
 
-        if (bind(fd, (struct sockaddr *)&address2, sizeof(address2)) < 0) {
-            perror("bind");
-            exit(EXIT_FAILURE);
-        }
+		if (bind(fd, (struct sockaddr *)&address2, sizeof(address2)) < 0) {
+			perror("bind");
+			exit(EXIT_FAILURE);
+		}
 
-        if (listen(fd, 1) < 0) {
-            perror("listen");
-            exit(EXIT_FAILURE);
-        }
+		if (listen(fd, 1) < 0) {
+			perror("listen");
+			exit(EXIT_FAILURE);
+		}
 		printf("Serveur en attente sur le port %d\n", portPublic);
-        client_fd = accept(fd, (struct sockaddr *)&address2, &addrlen);
-        if (client_fd < 0) {
-            perror("accept");
-            exit(EXIT_FAILURE);
-        }
-        printf("Client connecté\n");
-    }
+		client_fd = accept(fd, (struct sockaddr *)&address2, &addrlen);
+		if (client_fd < 0) {
+			perror("accept");
+			exit(EXIT_FAILURE);
+		}
+		printf("Client connecté\n");
+	}
 
-    struct data_envoyer_messages datas;
-    datas.fd = client_fd;
-    datas.pseudo = (char *)malloc(BUFFER_SIZE);
-    strcpy(datas.pseudo, pseudo);
+	struct data_envoyer_messages datas;
+	datas.fd = client_fd;
+	datas.pseudo = (char *)malloc(BUFFER_SIZE);
+	strcpy(datas.pseudo, pseudo);
 
-    pthread_t thread_envoyer;
-    pthread_create(&thread_envoyer, NULL, envoyer_messages, &datas);
+	pthread_t thread_envoyer;
+	pthread_create(&thread_envoyer, NULL, envoyer_messages, &datas);
 
-    recevoir_messages(client_fd);
+	recevoir_messages(client_fd);
 
-    pthread_cancel(thread_envoyer);
+	pthread_cancel(thread_envoyer);
 
-    if (mode == 1)
-        close(fd);
-    close(client_fd);
+	if (mode == 1)
+		close(fd);
+	close(client_fd);
 
-    printf("Tchatooine fermé\n");
-    free(datas.pseudo);
+	printf("Tchatooine fermé\n");
+	free(datas.pseudo);
 
     closenatpmp(&natpmp);
     // if (resUPnP)
