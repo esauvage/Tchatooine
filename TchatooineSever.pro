@@ -7,4 +7,7 @@ SOURCES += \
         chacha20-c/chacha20.c \
         serveur.c
 
-LIBS += -lnatpmp
+LIBS += -lnatpmp -lminiupnpc
+
+HEADERS += \
+	chacha20-c/chacha20.h

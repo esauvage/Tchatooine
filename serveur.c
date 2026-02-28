@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT 12500
+//#define PORT 12500
 #define BUFFER_SIZE 1024
 
 struct data_envoyer_messages {
@@ -43,8 +43,8 @@ void generer_nonce(uint8_t nonce[12]) {
             // printf("Nonce : %s\n", data);
             strcpy((char *)nonce, (char *)data);
         }
-    }
-    fclose(f);
+		fclose(f);
+	}
 }
 
 void generer_cle(uint8_t cle[32]) {
@@ -61,8 +61,8 @@ void generer_cle(uint8_t cle[32]) {
             // printf("Clé : %s\n", data);
             strcpy((char *)cle, (char *)data);
         }
-    }
-    fclose(f);
+		fclose(f);
+	}
 }
 
 /*void convertir_msg(uint8_t *msg_en_nombres, char *msg) {
@@ -216,7 +216,7 @@ int redirectNATPMP(uint16_t privateport, uint16_t publicport,
     } natpmpstate = Sinit;
     int r;
     int lifetime = 3600;
-    uint32_t mappinglifetime;
+	uint32_t mappinglifetime;
     int nbEssais = 3;
 
     if (initnatpmp(natpmp, 0, 0) < 0)
@@ -351,26 +351,26 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive,
 
 int main(int argc, char **argv) {
     natpmp_t natpmp;
-    uint16_t portPublic = 1250;
-    uint16_t portPrive = 1250;
+	uint16_t portPublic = 9158;
+	uint16_t portPrive = 9158;
 
     char strPortPublic[10];
     sprintf(strPortPublic, "%d", portPublic);
 
-    struct UPNPDev *devlist = 0;
+	struct UPNPDev *devlist = 0;
     struct UPNPUrls urls;
     struct IGDdatas data;
 
-    int resNATPMP = redirectNATPMP(portPrive, portPublic, &natpmp);
+	int resNATPMP = 1;//redirectNATPMP(portPrive, portPublic, &natpmp);
     int resUPnP = 1;
     if (resNATPMP) {
         puts("L'ouverture de port avec NAT-PMP a échouée, tentative avec "
              "UPnP...");
-        resUPnP = redirectUPnP(portPublic, portPrive, devlist, &urls, &data);
+		resUPnP = redirectUPnP(portPublic, portPrive, devlist, &urls, &data);
     }
 
     if (resUPnP) {
-        puts("La redirection de ports a échouer, veuillez ouvrir un port sur "
+		puts("La redirection de ports a échoué, veuillez ouvrir un port sur "
              "votre routeur manuellement");
         return 0;
     }
@@ -395,22 +395,20 @@ int main(int argc, char **argv) {
     }
 
     address.sin_family = AF_INET;
-    address.sin_port = htons(PORT);
+	address.sin_port = portPublic;
 
     // 81.250.70.0
-    if (inet_pton(AF_INET, "81.250.70.0", &address.sin_addr) <= 0) {
+	if (inet_pton(AF_INET, "87.88.38.108", &address.sin_addr) <= 0) {
         // perror("inet_pton");
         mode = 1;
     }
 
-    if (connect(client_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        // perror("connect");
-        // return 1;
-        puts("Pair non connecté, passage en mode serveur...");
+	if (connect(client_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+	   puts("Pair non connecté, passage en mode serveur...");
         mode = 1;
-    } else {
-        puts("Connecté au serveur avec succès");
-    }
+	} else {
+		puts("Connecté au serveur avec succès");
+	}
 
     if (mode == 1) {
         fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -424,7 +422,7 @@ int main(int argc, char **argv) {
 
         address2.sin_family = AF_INET;
         address2.sin_addr.s_addr = INADDR_ANY;
-        address2.sin_port = htons(PORT);
+		address2.sin_port = htons(portPrive);
 
         if (bind(fd, (struct sockaddr *)&address2, sizeof(address2)) < 0) {
             perror("bind");
@@ -435,7 +433,7 @@ int main(int argc, char **argv) {
             perror("listen");
             exit(EXIT_FAILURE);
         }
-        printf("Serveur en attente sur le port %d\n", PORT);
+		printf("Serveur en attente sur le port %d\n", portPublic);
         client_fd = accept(fd, (struct sockaddr *)&address2, &addrlen);
         if (client_fd < 0) {
             perror("accept");
@@ -471,7 +469,7 @@ int main(int argc, char **argv) {
                                strPortPublic, "TCP", 0);
     }
     FreeUPNPUrls(&urls);
-    freeUPNPDevlist(devlist);
+	freeUPNPDevlist(devlist);
 
     return 0;
 }
