@@ -1,3 +1,9 @@
+/* TODO :
+ * - Réparer la fermeture du port ouvert avec UPnP
+ * - Refaire le système de chiffrement car là c'est du bren
+ * - Gagner dans Civilization IV
+ * */
+
 #include "chacha20-c/chacha20.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -15,7 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT 1236
+#define PORT 12500
 #define BUFFER_SIZE 1024
 
 struct data_envoyer_messages {
@@ -291,8 +297,8 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive,
     printf("Recherche d'un IGD...\n");
     devlist = upnpDiscover(2000, NULL, NULL, 0, 0, 2, &error);
 
-    if (!devlist) {
-        printf("Aucun périphérique UPnP trouvé.\n");
+    if (error != 0) {
+        printf("error discovering upnp devices: %s\n", strupnperror(error));
         return 1;
     }
 
@@ -304,16 +310,40 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive,
         freeUPNPDevlist(devlist);
         return 1;
     }
-    printf("IGD trouvé ! IP locale : %s\n", lanaddr);
+    printf("status=%d, lan_addr=%s\n", status, lanaddr);
+    // printf("IGD trouvé ! IP locale : %s\n", lanaddr);
 
-    int result = UPNP_AddPortMapping(urls->controlURL, data->first.servicetype,
-                                     strPortPublic, strPortPrive, lanaddr,
-                                     "Serveur Tchatooine", "TCP", NULL, "0");
+    /*int result = UPNP_AddPortMapping(urls->controlURL,
+    data->first.servicetype, strPortPublic, strPortPrive, lanaddr, "Serveur
+    Tchatooine", "TCP", NULL, "0");
 
     if (result != UPNPCOMMAND_SUCCESS) {
         printf("Erreur ouverture port: %s\n", strupnperror(result));
+        return 1;
     } else {
         printf("Port %s ouvert avec succès !\n", strPortPublic);
+    }*/
+    if (status == 1) {
+        printf("found valid IGD: %s\n", urls->controlURL);
+        error =
+            UPNP_AddPortMapping(urls->controlURL, data->first.servicetype,
+                                strPortPrive,  // external port
+                                strPortPublic, // internal port
+                                lanaddr, "Tchatooine", "TCP",
+                                0,  // remote host
+                                "0" // lease duration, recommended 0 as some NAT
+                                // implementations may not support another value
+            );
+
+        if (error) {
+            printf("failed to map port\n");
+            printf("error: %s\n", strupnperror(error));
+            return 1;
+        } else
+            printf("successfully mapped port\n");
+    } else {
+        printf("no valid IGD found\n");
+        return 1;
     }
 
     return 0;
@@ -321,20 +351,23 @@ int redirectUPnP(uint16_t portPublic, uint16_t portPrive,
 
 int main(int argc, char **argv) {
     natpmp_t natpmp;
-    uint16_t portPublic = 1236;
-    uint16_t portPrive = 1236;
+    uint16_t portPublic = 1250;
+    uint16_t portPrive = 1250;
 
     char strPortPublic[10];
     sprintf(strPortPublic, "%d", portPublic);
 
-    struct UPNPDev *devlist = NULL;
+    struct UPNPDev *devlist = 0;
     struct UPNPUrls urls;
     struct IGDdatas data;
 
     int resNATPMP = redirectNATPMP(portPrive, portPublic, &natpmp);
     int resUPnP = 1;
-    if (resNATPMP)
+    if (resNATPMP) {
+        puts("L'ouverture de port avec NAT-PMP a échouée, tentative avec "
+             "UPnP...");
         resUPnP = redirectUPnP(portPublic, portPrive, devlist, &urls, &data);
+    }
 
     if (resUPnP) {
         puts("La redirection de ports a échouer, veuillez ouvrir un port sur "
@@ -430,11 +463,12 @@ int main(int argc, char **argv) {
     printf("Tchatooine fermé\n");
     free(datas.pseudo);
 
-    if (resUPnP)
-        closenatpmp(&natpmp);
-    else {
+    closenatpmp(&natpmp);
+    // if (resUPnP)
+    // closenatpmp(&natpmp);
+    if (resUPnP == 0) {
         UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
-                               strPortPublic, "TCP", NULL);
+                               strPortPublic, "TCP", 0);
     }
     FreeUPNPUrls(&urls);
     freeUPNPDevlist(devlist);
