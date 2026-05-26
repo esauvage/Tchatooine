@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/icones">
+        <file>Tatooine.png</file>
+    </qresource>
+</RCC>

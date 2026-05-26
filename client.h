@@ -1,0 +1,41 @@
+#ifndef CLIENT_H
+#define CLIENT_H
+
+#include <QTcpSocket>
+#include <QUrl>
+#include <QThread>
+#include <QCborStreamWriter>
+#include <QCborStreamReader>
+#include <QUuid>
+
+class Client : public QObject {
+	Q_OBJECT
+public:
+	explicit Client(QObject *parent = nullptr);
+	void setUrl_pair(const QUrl &newUrl_pair);
+	bool envoie(const QString message);
+	bool envoie(const QString commande, const QString parametre);
+	QHostAddress peerAddress() const;
+    QStringList peers() const;
+
+private slots:
+	void onConnected();
+	void processReadyRead();
+	void reconnect();
+private:
+	QTcpSocket _socket;
+    QUrl _url_pair;
+	QCborStreamWriter _ecrivain;
+	QCborStreamReader _lecteur;
+	QUuid _uuid;
+	QMap<QUuid, QString>_pseudos;
+
+	void traiteMessage(QMap<QString, QString> message);
+signals:
+	void resultReady(const QString &s);
+	void nouvMessage(QString message);
+	void connected();
+	void annuaireChanged();
+};
+
+#endif // CLIENT_H
