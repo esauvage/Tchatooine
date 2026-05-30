@@ -41,3 +41,17 @@ bool DbManager::ajouterMessage(const QString &message)
 
     return success;
 }
+
+QStringList DbManager::recupererMessages()
+{
+    QStringList messages;
+
+    QSqlQuery query("SELECT * FROM messages");
+    int idMessage = query.record().indexOf("message");
+    while (query.next())
+    {
+        QString message = query.value(idMessage).toString();
+        messages.append(message);
+    }
+    return messages;
+}

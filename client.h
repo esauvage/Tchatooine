@@ -35,9 +35,10 @@ private:
     DbManager *_historique;
 
 	void traiteMessage(QMap<QString, QString> message);
+    void traiteAnciensMessages();
 signals:
 	void resultReady(const QString &s);
-	void nouvMessage(QString message);
+    void nouvMessage(QString message, bool isAncienMessage = false);
 	void connected();
 	void annuaireChanged();
 };

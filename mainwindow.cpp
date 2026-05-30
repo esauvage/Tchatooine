@@ -10,9 +10,12 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->lblMessages->clear();
 	ui->edtMessage->clear();
 	ui->statusbar->showMessage("Not connected");
-	QString pseudo = qgetenv("USER");
-	if (pseudo.isEmpty())
-		pseudo = qgetenv("USERNAME");
+    // QString pseudo = qgetenv("USER");
+    // if (pseudo.isEmpty())
+    // 	pseudo = qgetenv("USERNAME");
+
+    QString pseudo = "Niels";
+
 	ui->edtPseudo->setText(pseudo);
 
     ui->cbxPair->addItem("localhost:9158");
@@ -61,10 +64,10 @@ void MainWindow::affichePeers()
 	ui->lblPeers->setText(_tchat.peers().join('\n'));
 }
 
-void MainWindow::afficheMessage(QString message)
+void MainWindow::afficheMessage(QString message, bool isAncienMessage)
 {
 	ui->lblMessages->setText(ui->lblMessages->text() + message + "\n");
-	if (!isActiveWindow()) {
+    if (!isActiveWindow() && isAncienMessage) {
 		// Show a notification balloon
 		_trayIcon.showMessage(
 			"Nouveau message",

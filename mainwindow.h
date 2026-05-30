@@ -22,7 +22,7 @@ protected:
 	// virtual bool event(QEvent *e) override;
 
 private slots:
-	void afficheMessage(QString message);
+    void afficheMessage(QString message, bool isAncienMessage = false);
 	void on_edtMessage_editingFinished();
 	void on_cbxPair_currentIndexChanged(int index);
 	void on_edtPseudo_editingFinished();
