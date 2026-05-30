@@ -15,8 +15,9 @@ MainWindow::MainWindow(QWidget *parent)
 		pseudo = qgetenv("USERNAME");
 	ui->edtPseudo->setText(pseudo);
 
+    ui->cbxPair->addItem("localhost:9158");
+    ui->cbxPair->addItem("176.187.157.48:9158");
 	ui->cbxPair->addItem("87.88.38.108:9158");
-	ui->cbxPair->addItem("176.187.157.48:9158");
 
 	// Check if the system tray is available
 	if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -91,4 +92,3 @@ void MainWindow::on_edtPseudo_editingFinished()
 {
 	_tchat.setPseudo(ui->edtPseudo->text());
 }
-

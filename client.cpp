@@ -1,3 +1,6 @@
+/* Création de l'historique et suppression : ok
+ */
+
 #include "client.h"
 
 using namespace Qt::StringLiterals;
@@ -5,15 +8,24 @@ using namespace Qt::StringLiterals;
 Client::Client(QObject *parent) : QObject(parent), _ecrivain((QIODevice *)nullptr), _lecteur((QIODevice *)nullptr)
 {
 	_uuid = QUuid::createUuid();
-	QString nom = qgetenv("USER");
-	if (nom.isEmpty())
-		nom = qgetenv("USERNAME");
+    QString nom = qgetenv("USER");
+    if (nom.isEmpty())
+        nom = qgetenv("USERNAME");
+
 	_pseudos[_uuid] = nom;
 	connect(&_socket, &QTcpSocket::connected, this, &Client::onConnected);
 	connect(&_socket, &QTcpSocket::connected, this, &Client::connected);
 	connect(&_socket, &QTcpSocket::readyRead, this, &Client::processReadyRead);
     connect(&_socket, &QTcpSocket::errorOccurred, this, &Client::reconnect);
     connect(&_socket, &QTcpSocket::disconnected, this, &Client::reconnect);
+
+    _historique = new DbManager("historique");
+}
+
+Client::~Client()
+{
+    delete _historique;
+    qDebug() << "Database closed\n";
 }
 
 void Client::onConnected()
@@ -82,8 +94,11 @@ void Client::traiteMessage(QMap <QString, QString> message) {
 	}
 	else if (_pseudos.contains(QUuid::fromString(message["id"]))) {
 		emit nouvMessage(_pseudos[QUuid::fromString(message["id"])] + " dit : " + message["message"_L1]);
+
+        _historique->ajouterMessage(_pseudos[QUuid::fromString(message["id"])] + " dit : " + message["message"_L1]);
 	} else {
 		emit nouvMessage(message["id"] + " dit : " + message["message"_L1]);
+        _historique->ajouterMessage(message["id"] + " dit : " + message["message"_L1]);
 	}
 }
 

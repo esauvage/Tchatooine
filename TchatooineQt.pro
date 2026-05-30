@@ -1,4 +1,4 @@
-QT       += core gui network
+QT       += core gui network sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -18,14 +18,16 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     serveur.cpp \
-    tchat.cpp
+    tchat.cpp \
+    dbmanager.cpp
 
 HEADERS += \
     client.h \
     connexion.h \
     mainwindow.h \
     serveur.h \
-    tchat.h
+    tchat.h \
+    dbmanager.h
 
 FORMS += \
     mainwindow.ui
