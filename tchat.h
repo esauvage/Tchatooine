@@ -22,7 +22,7 @@ private:
     Client _client;
     Serveur _serveur;
 signals:
-    void nouvMessage(QString message, bool isAncienMessage);
+    void nouvMessage(QString message, bool isAncienMessage = false);
 	void clientConnected();
 	void serveurConnected();
 	void annuaireChanged();

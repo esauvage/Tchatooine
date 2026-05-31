@@ -67,7 +67,7 @@ void MainWindow::affichePeers()
 void MainWindow::afficheMessage(QString message, bool isAncienMessage)
 {
 	ui->lblMessages->setText(ui->lblMessages->text() + message + "\n");
-    if (!isActiveWindow() && isAncienMessage) {
+    if (!isActiveWindow() && !isAncienMessage) {
 		// Show a notification balloon
 		_trayIcon.showMessage(
 			"Nouveau message",
