@@ -1,8 +1,8 @@
-QT       += core gui network sql
+QT       += core gui network sql multimedia multimediawidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++17
+CONFIG += c++23
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -15,22 +15,31 @@ win32:INCLUDEPATH += D:\EtienneArea\Personnel\miniupnp\miniupnpc\include\
 SOURCES += \
     client.cpp \
     connexion.cpp \
+    imagesettings.cpp \
     main.cpp \
     mainwindow.cpp \
+    metadatadialog.cpp \
     serveur.cpp \
     tchat.cpp \
-    dbmanager.cpp
+    dbmanager.cpp \
+    videosettings.cpp
 
 HEADERS += \
     client.h \
     connexion.h \
+    imagesettings.h \
     mainwindow.h \
+    metadatadialog.h \
     serveur.h \
     tchat.h \
-    dbmanager.h
+    dbmanager.h \
+    videosettings.h
 
 FORMS += \
-    mainwindow.ui
+    imagesettings.ui \
+    mainwindow.ui \
+    videosettings.ui \
+    videosettings_mobile.ui
 win32:LIBS += -LD:\EtienneArea\Personnel\miniupnp\miniupnpc\build\Desktop_Qt_6_11_0_MinGW_64_bit-Debug
 LIBS += -lminiupnpc
 
