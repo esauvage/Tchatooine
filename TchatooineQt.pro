@@ -19,7 +19,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     metadatadialog.cpp \
-    serveur.cpp \
+    serveuravecupnp.cpp \
     tchat.cpp \
     dbmanager.cpp \
     videosettings.cpp
@@ -30,7 +30,7 @@ HEADERS += \
     imagesettings.h \
     mainwindow.h \
     metadatadialog.h \
-    serveur.h \
+    serveuravecupnp.h \
     tchat.h \
     dbmanager.h \
     videosettings.h

@@ -4,7 +4,7 @@ using namespace std;
 
 Tchat::Tchat() {
 	connect(&_client, &Client::connected, this, &Tchat::clientConnected);
-	connect (&_serveur, &Serveur::connexionsChanged, this, &Tchat::serveurConnected);
+	connect (&_serveur, &ServeurAvecUPNP::connexionsChanged, this, &Tchat::serveurConnected);
 	connect(&_client, &Client::nouvMessage, this, &Tchat::nouvMessage);
 	connect(&_client, &Client::annuaireChanged, this, &Tchat::annuaireChanged);
 }

@@ -1,5 +1,5 @@
-#ifndef SERVEUR_H
-#define SERVEUR_H
+#ifndef SERVEURAVECUPNP_H
+#define SERVEURAVECUPNP_H
 
 #include <QTcpServer>
 #include <QSharedPointer>
@@ -10,10 +10,10 @@ struct UPNPDev;
 struct UPNPUrls;
 struct IGDdatas;
 
-class Serveur : public QTcpServer {
+class ServeurAvecUPNP : public QTcpServer {
 	Q_OBJECT
 public:
-	explicit Serveur(QObject *parent = nullptr);
+    explicit ServeurAvecUPNP(QObject *parent = nullptr);
 	void getUpNP();
 	void demarre();
 
@@ -38,4 +38,4 @@ private:
 	QList<QSharedPointer<Connexion>> _pConn;
 };
 
-#endif // SERVEUR_H
+#endif // SERVEURAVECUPNP_H
