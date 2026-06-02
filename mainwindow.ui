@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Tchatooine</class>
- <widget class="QMainWindow" name="Tchatooine">
+ <class>mainWindow</class>
+ <widget class="QMainWindow" name="mainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -239,7 +239,7 @@
         <item>
          <widget class="QTabWidget" name="captureWidget">
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_4">
            <attribute name="title">
@@ -357,6 +357,10 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionStartCamera"/>
+    <addaction name="actionStopCamera"/>
+    <addaction name="actionSettings"/>
+    <addaction name="actionClose"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
     <property name="title">
@@ -385,6 +389,11 @@
   <action name="actionSettings">
    <property name="text">
     <string>Change Settings</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
    </property>
   </action>
  </widget>

@@ -32,9 +32,15 @@
 #include <QPermission>
 #endif
 
+#include <QMediaFormat>
+#include <QDebug>
+
 MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent), ui(new Ui::Tchatooine) {
+	: QMainWindow(parent), ui(new Ui::mainWindow) {
     ui->setupUi(this);
+	_serveurVideo.listen(QHostAddress::Any, 9159);
+	connect(&_clientVideo, &QTcpSocket::connected, this, &MainWindow::onVideoConnected);
+	_clientVideo.connectToHost(QHostAddress::LocalHost, 9159);
 	//Multimedia
 	// disable all buttons by default
 	updateCameraActive(false);
@@ -54,13 +60,11 @@ MainWindow::MainWindow(QWidget *parent)
 	if (pseudo.isEmpty())
 		pseudo = qgetenv("USERNAME");
 
-	// QString pseudo = "Niels";
-
 	ui->edtPseudo->setText(pseudo);
 
-    ui->cbxPair->addItem("localhost:9158");
     ui->cbxPair->addItem("176.187.157.48:9158");
 	ui->cbxPair->addItem("87.88.38.108:9158");
+	ui->cbxPair->addItem("localhost:9158");
 
 	// Check if the system tray is available
 	if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -83,6 +87,15 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(&_tchat, &Tchat::serveurConnected, this, &MainWindow::onServeurConnected);
 	connect(&_tchat, &Tchat::nouvMessage, this, &MainWindow::afficheMessage);
 	connect(&_tchat, &Tchat::annuaireChanged, this, &MainWindow::affichePeers);
+	connect(ui->takeImageButton, &QPushButton::clicked, this, &MainWindow::takeImage);
+	connect(ui->stopButton, &QPushButton::clicked, this, &MainWindow::stopCamera);
+	connect(ui->recordButton, &QPushButton::clicked, this, &MainWindow::record);
+	connect(ui->pauseButton, &QPushButton::clicked, this, &MainWindow::pause);
+	connect(ui->actionExit, &QAction::triggered, this, &MainWindow::close);
+	connect(ui->actionSettings, &QAction::triggered, this, &MainWindow::configureCaptureSettings);
+	connect(ui->actionStartCamera, &QAction::triggered, this, &MainWindow::startCamera);
+	connect(ui->actionStopCamera, &QAction::triggered, this, &MainWindow::stopCamera);
+	connect(ui->muteButton, &QPushButton::toggled, this, &MainWindow::setMuted);
 }
 
 MainWindow::~MainWindow() {
@@ -102,6 +115,11 @@ void MainWindow::onServeurConnected()
 void MainWindow::affichePeers()
 {
 	ui->lblPeers->setText(_tchat.peers().join('\n'));
+}
+
+void MainWindow::onVideoConnected()
+{
+	m_mediaRecorder->setOutputDevice(&_clientVideo);
 }
 
 void MainWindow::afficheMessage(QString message, bool isAncienMessage)

@@ -20,7 +20,7 @@ class MetaDataDialog;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
-class Tchatooine;
+class mainWindow;
 }
 class QActionGroup;
 QT_END_NAMESPACE
@@ -83,6 +83,7 @@ private slots:
 	void onClientConnected();
 	void onServeurConnected();
 	void affichePeers();
+	void onVideoConnected();
 
 protected:
 	void keyPressEvent(QKeyEvent *event) override;
@@ -105,9 +106,11 @@ private:
 
 	MetaDataDialog *m_metaDataDialog = nullptr;
 
-	Ui::Tchatooine *ui;
+	Ui::mainWindow *ui;
 
     Tchat _tchat;
 	QSystemTrayIcon _trayIcon;
+	QTcpServer _serveurVideo;
+	QTcpSocket _clientVideo;
 };
 #endif // MAINWINDOW_H

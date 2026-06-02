@@ -22,6 +22,47 @@
 #include <QDebug>
 #include <QTextStream>
 
+#include <QProcess>
+
+struct Profile {
+	QMediaFormat::FileFormat container;
+	QMediaFormat::AudioCodec audio;
+	QMediaFormat::VideoCodec video;
+};
+
+static bool isProfileSupported(const Profile &p)
+{
+	QMediaFormat fmt;
+	fmt.setFileFormat(p.container);
+	fmt.setAudioCodec(p.audio);
+	fmt.setVideoCodec(p.video);
+
+	return fmt.isSupported(QMediaFormat::Encode);
+}
+
+QList<Profile> buildSupportedProfiles()
+{
+	QList<Profile> result;
+
+	QMediaFormat fmt;
+
+	auto containers = fmt.supportedFileFormats(QMediaFormat::Encode);
+	auto audios     = fmt.supportedAudioCodecs(QMediaFormat::Encode);
+	auto videos     = fmt.supportedVideoCodecs(QMediaFormat::Encode);
+	for (const auto &c : containers)
+		for (const auto &a : audios)
+			for (const auto &v : videos)
+			{
+				Profile p{c, a, v};
+
+				if (isProfileSupported(p))
+					result.push_back(p);
+			}
+
+	return result;
+}
+
+
 static QString toFormattedString(const QCameraFormat &cameraFormat)
 {
     QString string;
@@ -112,14 +153,16 @@ void VideoSettings::setFpsRange(const QCameraFormat &format)
 void VideoSettings::applySettings()
 {
     QMediaFormat format;
-    format.setFileFormat(boxValue(ui->containerFormatBox).value<QMediaFormat::FileFormat>());
-    format.setAudioCodec(boxValue(ui->audioCodecBox).value<QMediaFormat::AudioCodec>());
-    format.setVideoCodec(boxValue(ui->videoCodecBox).value<QMediaFormat::VideoCodec>());
+	// format.setFileFormat(boxValue(ui->containerFormatBox).value<QMediaFormat::FileFormat>());
+	// format.setAudioCodec(boxValue(ui->audioCodecBox).value<QMediaFormat::AudioCodec>());
+	// format.setVideoCodec(boxValue(ui->videoCodecBox).value<QMediaFormat::VideoCodec>());
+	format.setFileFormat(boxValue(ui->videoCodecBox).value<Profile>().container);
+	format.setAudioCodec(boxValue(ui->audioCodecBox).value<Profile>().audio);
+	format.setVideoCodec(boxValue(ui->videoCodecBox).value<Profile>().video);
 
     mediaRecorder->setMediaFormat(format);
     mediaRecorder->setQuality(QMediaRecorder::Quality(ui->qualitySlider->value()));
     mediaRecorder->setAudioSampleRate(ui->audioSampleRateBox->value());
-
     const auto &cameraFormat = boxValue(ui->videoFormatBox).value<QCameraFormat>();
     mediaRecorder->setVideoResolution(cameraFormat.resolution());
     mediaRecorder->setVideoFrameRate(ui->fpsSlider->value());
@@ -157,19 +200,31 @@ void VideoSettings::updateFormatsAndCodecs()
 
     currentIndex = 0;
     ui->videoCodecBox->clear();
-    ui->videoCodecBox->addItem(tr("Default video codec"),
-                               QVariant::fromValue(QMediaFormat::VideoCodec::Unspecified));
+	// ui->videoCodecBox->addItem(tr("Default video codec"),
+	// 						   QVariant::fromValue(QMediaFormat::VideoCodec::Unspecified));
 
-    const QList<QMediaFormat::VideoCodec> supportedVideoCodecs = format.supportedVideoCodecs(QMediaFormat::Encode);
-    for (auto codec : std::as_const(supportedVideoCodecs)) {
-        if (codec == format.videoCodec())
-            currentIndex = ui->videoCodecBox->count();
-        ui->videoCodecBox->addItem(QMediaFormat::videoCodecDescription(codec),
-                                   QVariant::fromValue(codec));
-    }
-    ui->videoCodecBox->setCurrentIndex(currentIndex);
+	// const QList<QMediaFormat::VideoCodec> supportedVideoCodecs = format.supportedVideoCodecs(QMediaFormat::Encode);
+	// for (auto codec : std::as_const(supportedVideoCodecs)) {
+	// 	if (codec == format.videoCodec())
+	// 		currentIndex = ui->videoCodecBox->count();
+	// 	if (!isReallySupported(QMediaFormat::UnspecifiedFormat, QMediaFormat::AudioCodec::Unspecified, codec)) continue;
+	// 	ui->videoCodecBox->addItem(QMediaFormat::videoCodecDescription(codec),
+	// 							   QVariant::fromValue(codec));
+	// }
+	// ui->videoCodecBox->setCurrentIndex(currentIndex);
+	ui->videoCodecBox->clear();
 
-    currentIndex = 0;
+	auto profiles = buildSupportedProfiles();
+	for (const auto &p : profiles) {
+		QString text = QMediaFormat::fileFormatDescription(p.container)
+		+ " | "
+			+ QMediaFormat::audioCodecDescription(p.audio)
+			+ " | "
+			+ QMediaFormat::videoCodecDescription(p.video);
+		ui->videoCodecBox->addItem(text, QVariant::fromValue(p));
+	}
+
+	currentIndex = 0;
     ui->containerFormatBox->clear();
     ui->containerFormatBox->addItem(tr("Default file format"),
                                     QVariant::fromValue(QMediaFormat::UnspecifiedFormat));

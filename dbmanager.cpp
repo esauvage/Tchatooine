@@ -17,9 +17,13 @@ DbManager::DbManager(const QString& path)
     QSqlQuery query;
     query.prepare("CREATE TABLE IF NOT EXISTS messages (\"id\" INTEGER, \"message\" TEXT, PRIMARY KEY(\"id\" AUTOINCREMENT));");
     if (!query.exec()) {
-        qDebug() << "Erreur lors de la création de la table : "
+		qWarning() << "Erreur lors de la création de la table : "
                  << query.lastError();
     }
+	if (!query.exec("CREATE TABLE IF NOT EXISTS PAIRS (ID INTEGER, URL TEXT, PRIMARY KEY(ID AUTOINCREMENT));")) {
+		qWarning() << "Erreur lors de la création de la table : "
+				 << query.lastError();
+	}
 }
 
 bool DbManager::ajouterMessage(const QString &message)
