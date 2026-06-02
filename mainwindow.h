@@ -117,6 +117,5 @@ private:
     ServeurAvecUPNP _serveurVideo;
 	QTcpSocket _clientVideo;
     QByteArray _videoBuffer;
-    quint32 _imageSize;
 };
 #endif // MAINWINDOW_H

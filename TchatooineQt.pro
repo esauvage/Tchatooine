@@ -22,6 +22,7 @@ SOURCES += \
     serveuravecupnp.cpp \
     tchat.cpp \
     dbmanager.cpp \
+    upnpmanager.cpp \
     videosettings.cpp
 
 HEADERS += \
@@ -33,6 +34,7 @@ HEADERS += \
     serveuravecupnp.h \
     tchat.h \
     dbmanager.h \
+    upnpmanager.h \
     videosettings.h
 
 FORMS += \

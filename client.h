@@ -20,6 +20,7 @@ public:
 	bool envoie(const QString commande, const QString parametre);
 	QHostAddress peerAddress() const;
     QStringList peers() const;
+	QUuid uuid() const;
 
 private slots:
 	void onConnected();

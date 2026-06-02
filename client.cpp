@@ -8,11 +8,9 @@ using namespace Qt::StringLiterals;
 Client::Client(QObject *parent) : QObject(parent), _ecrivain((QIODevice *)nullptr), _lecteur((QIODevice *)nullptr)
 {
 	_uuid = QUuid::createUuid();
-    // QString nom = qgetenv("USER");
-    // if (nom.isEmpty())
-    //     nom = qgetenv("USERNAME");
-
-    QString nom = "Niels";
+	QString nom = qgetenv("USER");
+	if (nom.isEmpty())
+		nom = qgetenv("USERNAME");
 
 	_pseudos[_uuid] = nom;
 	connect(&_socket, &QTcpSocket::connected, this, &Client::onConnected);
@@ -81,6 +79,11 @@ QHostAddress Client::peerAddress() const
 QStringList Client::peers() const
 {
     return _pseudos.values();
+}
+
+QUuid Client::uuid() const
+{
+	return _uuid;
 }
 
 void Client::traiteMessage(QMap <QString, QString> message) {

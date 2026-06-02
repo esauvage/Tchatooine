@@ -39,12 +39,15 @@
 using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::mainWindow), _imageSize(0) {
-    ui->setupUi(this);
-	_serveurVideo.listen(QHostAddress::Any, 9159);
+	: QMainWindow(parent), ui(new Ui::mainWindow), _serveurVideo(_tchat.upnp()) {
+	ui->setupUi(this);
+	_serveurVideo.setPort(9159);
+	_serveurVideo.getUpNP();
+	_serveurVideo.demarre();
+
 	connect(&_clientVideo, &QTcpSocket::connected, this, &MainWindow::onVideoConnected);
     // connect(&_serveurVideo, &QTcpServer::newConnection, this, &MainWindow::onVideoConnection);
-	_clientVideo.connectToHost(QHostAddress::LocalHost, 9159);
+	_clientVideo.connectToHost(_tchat.upnp().ip(), _serveurVideo.port());
 	//Multimedia
 	// disable all buttons by default
 	updateCameraActive(false);
@@ -131,36 +134,27 @@ void MainWindow::onVideoConnected()
 void MainWindow::processReadyRead() {
     QTcpSocket *client = qobject_cast<QTcpSocket*>(sender());
     if (!client) return;
+	QDataStream in(client);
 
-    _videoBuffer.append(client->readAll());
+	in.startTransaction();
 
-    while (true) {
-        // 1. header (taille)
-        if (_videoBuffer.size() < 4)
-            return;
-        if (!_imageSize) {
-            QDataStream in(_videoBuffer);
-            in >> _imageSize;
-        }
+	QUuid uuid;
+	QByteArray imageData;
 
-        // si pas toute l'image
-        if (_videoBuffer.size() < _imageSize + 4)
-            return;
+	in >> uuid;
+	in >> imageData;
 
-        // 2. extraire image
-        QByteArray imgData = _videoBuffer.mid(4, _imageSize);
+	if (!in.commitTransaction())
+	{
+		return;
+	}
+	// 3. décoder
+	QImage image;
+	image.loadFromData(imageData, "JPEG");
 
-        _videoBuffer.remove(0, _imageSize + 4);
-        _imageSize = 0;
-
-        // 3. décoder
-        QImage image;
-        image.loadFromData(imgData, "JPEG");
-
-        if (!image.isNull()) {
-            processCapturedImage(0, image);
-        }
-    }
+	if (!image.isNull()) {
+		processCapturedImage(0, image);
+	}
 }
 
 void MainWindow::onVideoConnection()
@@ -591,8 +585,8 @@ void MainWindow::onFrame(const QVideoFrame &frame)
     QByteArray packet;
     QDataStream ds(&packet, QIODevice::WriteOnly);
 
-    ds << quint32(payload.size());
-    packet.append(payload);
+	ds << _tchat.uuid();
+	ds << payload;
 
     _clientVideo.write(packet);
 }

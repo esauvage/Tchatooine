@@ -2,7 +2,9 @@
 
 using namespace std;
 
-Tchat::Tchat() {
+Tchat::Tchat() :
+	_serveur(_upnp){
+
 	connect(&_client, &Client::connected, this, &Tchat::clientConnected);
 	connect (&_serveur, &ServeurAvecUPNP::connexionsChanged, this, &Tchat::serveurConnected);
 	connect(&_client, &Client::nouvMessage, this, &Tchat::nouvMessage);
@@ -43,4 +45,14 @@ int Tchat::nbClients() const
 QStringList Tchat::peers() const
 {
 	return _client.peers();
+}
+
+QUuid Tchat::uuid() const
+{
+	return _client.uuid();
+}
+
+UpnpManager &Tchat::upnp()
+{
+	return _upnp;
 }
