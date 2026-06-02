@@ -34,6 +34,10 @@ public:
 public slots:
 	void saveMetaData();
 
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
 	void init();
 
@@ -85,12 +89,11 @@ private slots:
 	void affichePeers();
 	void onVideoConnected();
 
-protected:
-	void keyPressEvent(QKeyEvent *event) override;
-	void closeEvent(QCloseEvent *event) override;
+    void onFrame(const QVideoFrame &frame);
+    void processReadyRead();
+    void onVideoConnection();
 
 private:
-
 	QActionGroup *videoDevicesGroup = nullptr;
 
 	QMediaDevices m_devices;
@@ -99,6 +102,7 @@ private:
 	std::unique_ptr<QCamera> m_camera;
 	std::unique_ptr<QAudioInput> m_audioInput;
 	std::unique_ptr<QMediaRecorder> m_mediaRecorder;
+    std::unique_ptr<QVideoSink> _videoSink;
 
 	bool m_isCapturingImage = false;
 	bool m_applicationExiting = false;
@@ -110,7 +114,9 @@ private:
 
     Tchat _tchat;
 	QSystemTrayIcon _trayIcon;
-	QTcpServer _serveurVideo;
+    ServeurAvecUPNP _serveurVideo;
 	QTcpSocket _clientVideo;
+    QByteArray _videoBuffer;
+    quint32 _imageSize;
 };
 #endif // MAINWINDOW_H

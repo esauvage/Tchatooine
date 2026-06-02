@@ -4,7 +4,7 @@
 #include <QObject>
 
 #include "client.h"
-#include "serveur.h"
+#include "serveuravecupnp.h"
 
 class Tchat : public QObject {
     Q_OBJECT
@@ -20,7 +20,7 @@ public:
 	QStringList peers() const;
 private:
     Client _client;
-    Serveur _serveur;
+    ServeurAvecUPNP _serveur;
 signals:
     void nouvMessage(QString message, bool isAncienMessage = false);
 	void clientConnected();

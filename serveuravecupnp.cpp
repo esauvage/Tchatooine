@@ -1,4 +1,4 @@
-#include "serveur.h"
+#include "serveuravecupnp.h"
 
 #include "connexion.h"
 #include <miniupnpc.h>
@@ -6,22 +6,22 @@
 #include <upnperrors.h>
 
 using namespace std;
-Serveur::Serveur(QObject *parent)
-	: QTcpServer(parent), _portPrive(9158), _portPublic(9158)
+ServeurAvecUPNP::ServeurAvecUPNP(QObject *parent)
+    : QTcpServer(parent), _portPrive(9158), _portPublic(9158), _ipExterne("localhost")
 {
 }
 
-void Serveur::incomingConnection(qintptr socketDescriptor)
+void ServeurAvecUPNP::incomingConnection(qintptr socketDescriptor)
 {
 	QSharedPointer<Connexion> connexion =
 		QSharedPointer<Connexion>(new Connexion(socketDescriptor, this), &QObject::deleteLater);
 	_pConn << connexion;
-	connect(connexion.get(), &Connexion::aTransferer, this, &Serveur::transfere);
-	connect(connexion.get(), &QTcpSocket::disconnected, this, &Serveur::onDeconnecter);
+    connect(connexion.get(), &Connexion::aTransferer, this, &ServeurAvecUPNP::transfere);
+    connect(connexion.get(), &QTcpSocket::disconnected, this, &ServeurAvecUPNP::onDeconnecter);
 	emit connexionsChanged();
 }
 
-int Serveur::redirectUPnP(struct UPNPDev *devlist, struct UPNPUrls *urls,
+int ServeurAvecUPNP::redirectUPnP(struct UPNPDev *devlist, struct UPNPUrls *urls,
 				 struct IGDdatas *data) {
 	/*struct UPNPDev *devlist = NULL;
 	struct UPNPUrls urls;
@@ -80,22 +80,22 @@ int Serveur::redirectUPnP(struct UPNPDev *devlist, struct UPNPUrls *urls,
 	return 0;
 }
 
-QString Serveur::ip() const
+QString ServeurAvecUPNP::ip() const
 {
 	return _ipExterne;
 }
 
-unsigned int Serveur::nbClients() const
+unsigned int ServeurAvecUPNP::nbClients() const
 {
 	return _pConn.size();
 }
 
-uint16_t Serveur::port() const
+uint16_t ServeurAvecUPNP::port() const
 {
 	return _portPublic;
 }
 
-void Serveur::getUpNP()
+void ServeurAvecUPNP::getUpNP()
 {
 	struct UPNPDev *devlist = nullptr;
 	struct UPNPUrls urls;
@@ -108,18 +108,18 @@ void Serveur::getUpNP()
 	}
 }
 
-void Serveur::demarre()
+void ServeurAvecUPNP::demarre()
 {
 	listen(QHostAddress::Any, _portPrive);
 }
 
-void Serveur::transfere(QByteArray message) {
+void ServeurAvecUPNP::transfere(QByteArray message) {
 	for (auto & c : _pConn) {
 		c->envoie(message);
 	}
 }
 
-void Serveur::onDeconnecter()
+void ServeurAvecUPNP::onDeconnecter()
 {
 	for (auto &c : _pConn) {
 		if (c.get() == sender()) {

@@ -16,6 +16,7 @@
 #include <QMediaMetaData>
 #include <QMediaRecorder>
 #include <QVideoWidget>
+#include <QVideoSink>
 
 #include <QLineEdit>
 
@@ -32,14 +33,17 @@
 #include <QPermission>
 #endif
 
-#include <QMediaFormat>
+#include <QBuffer>
 #include <QDebug>
 
+using namespace std;
+
 MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent), ui(new Ui::mainWindow) {
+    : QMainWindow(parent), ui(new Ui::mainWindow), _imageSize(0) {
     ui->setupUi(this);
 	_serveurVideo.listen(QHostAddress::Any, 9159);
 	connect(&_clientVideo, &QTcpSocket::connected, this, &MainWindow::onVideoConnected);
+    // connect(&_serveurVideo, &QTcpServer::newConnection, this, &MainWindow::onVideoConnection);
 	_clientVideo.connectToHost(QHostAddress::LocalHost, 9159);
 	//Multimedia
 	// disable all buttons by default
@@ -49,9 +53,11 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->pauseButton->setEnabled(false);
 	ui->stopButton->setEnabled(false);
 	ui->metaDataButton->setEnabled(false);
-
+    _videoSink = make_unique<QVideoSink>(this);
 	// try to actually initialize camera & mic
 	init();
+    QVideoFrame vf;
+    _videoSink->videoFrameChanged(vf);
 //!end multimedia
 	ui->lblMessages->clear();
 	ui->edtMessage->clear();
@@ -62,9 +68,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 	ui->edtPseudo->setText(pseudo);
 
+    ui->cbxPair->addItem("localhost:9158");
     ui->cbxPair->addItem("176.187.157.48:9158");
 	ui->cbxPair->addItem("87.88.38.108:9158");
-	ui->cbxPair->addItem("localhost:9158");
 
 	// Check if the system tray is available
 	if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -119,7 +125,51 @@ void MainWindow::affichePeers()
 
 void MainWindow::onVideoConnected()
 {
-	m_mediaRecorder->setOutputDevice(&_clientVideo);
+    connect(&_clientVideo, &QTcpSocket::readyRead, this, &MainWindow::processReadyRead);
+}
+
+void MainWindow::processReadyRead() {
+    QTcpSocket *client = qobject_cast<QTcpSocket*>(sender());
+    if (!client) return;
+
+    _videoBuffer.append(client->readAll());
+
+    while (true) {
+        // 1. header (taille)
+        if (_videoBuffer.size() < 4)
+            return;
+        if (!_imageSize) {
+            QDataStream in(_videoBuffer);
+            in >> _imageSize;
+        }
+
+        // si pas toute l'image
+        if (_videoBuffer.size() < _imageSize + 4)
+            return;
+
+        // 2. extraire image
+        QByteArray imgData = _videoBuffer.mid(4, _imageSize);
+
+        _videoBuffer.remove(0, _imageSize + 4);
+        _imageSize = 0;
+
+        // 3. décoder
+        QImage image;
+        image.loadFromData(imgData, "JPEG");
+
+        if (!image.isNull()) {
+            processCapturedImage(0, image);
+        }
+    }
+}
+
+void MainWindow::onVideoConnection()
+{
+    QTcpSocket *client = _serveurVideo.nextPendingConnection();
+    // connect(client, &QTcpSocket::readyRead, this, &MainWindow::processReadyRead);
+    connect(client, &QTcpSocket::disconnected, client, &QObject::deleteLater);
+
+    // m_clients << client;
 }
 
 void MainWindow::afficheMessage(QString message, bool isAncienMessage)
@@ -185,9 +235,9 @@ void MainWindow::init()
 
 	m_audioInput.reset(new QAudioInput);
 	m_captureSession.setAudioInput(m_audioInput.get());
+    m_captureSession.setVideoSink(_videoSink.get());
 
 	// Camera devices:
-
 	videoDevicesGroup = new QActionGroup(this);
 	videoDevicesGroup->setExclusive(true);
 	updateCameras();
@@ -197,6 +247,8 @@ void MainWindow::init()
 	connect(ui->captureWidget, &QTabWidget::currentChanged, this, &MainWindow::updateCaptureMode);
 
 	connect(ui->metaDataButton, &QPushButton::clicked, this, &MainWindow::showMetaDataDialog);
+
+    connect(_videoSink.get(), &QVideoSink::videoFrameChanged, this, &MainWindow::onFrame);
 
 	setCamera(QMediaDevices::defaultVideoInput());
 }
@@ -211,13 +263,14 @@ void MainWindow::setCamera(const QCameraDevice &cameraDevice)
 
 	if (!m_mediaRecorder) {
 		m_mediaRecorder.reset(new QMediaRecorder);
-		m_captureSession.setRecorder(m_mediaRecorder.get());
-		connect(m_mediaRecorder.get(), &QMediaRecorder::recorderStateChanged, this,
-				&MainWindow::updateRecorderState);
-		connect(m_mediaRecorder.get(), &QMediaRecorder::durationChanged, this,
-				&MainWindow::updateRecordTime);
-		connect(m_mediaRecorder.get(), &QMediaRecorder::errorChanged, this,
-				&MainWindow::displayRecorderError);
+        m_captureSession.setVideoSink(_videoSink.get());
+        // m_captureSession.setRecorder(m_mediaRecorder.get());
+        // connect(m_mediaRecorder.get(), &QMediaRecorder::recorderStateChanged, this,
+        // 		&MainWindow::updateRecorderState);
+        // connect(m_mediaRecorder.get(), &QMediaRecorder::durationChanged, this,
+        // 		&MainWindow::updateRecordTime);
+        // connect(m_mediaRecorder.get(), &QMediaRecorder::errorChanged, this,
+        // 		&MainWindow::displayRecorderError);
 	}
 
 	if (!m_imageCapture) {
@@ -225,14 +278,14 @@ void MainWindow::setCamera(const QCameraDevice &cameraDevice)
 		m_captureSession.setImageCapture(m_imageCapture.get());
 		connect(m_imageCapture.get(), &QImageCapture::readyForCaptureChanged, this,
 				&MainWindow::readyForCapture);
-		connect(m_imageCapture.get(), &QImageCapture::imageCaptured, this,
-				&MainWindow::processCapturedImage);
+        // connect(m_imageCapture.get(), &QImageCapture::imageCaptured, this,
+        // 		&MainWindow::processCapturedImage);
 		connect(m_imageCapture.get(), &QImageCapture::imageSaved, this, &MainWindow::imageSaved);
 		connect(m_imageCapture.get(), &QImageCapture::errorOccurred, this,
 				&MainWindow::displayCaptureError);
 	}
 
-	m_captureSession.setVideoOutput(ui->viewfinder);
+    // m_captureSession.setVideoOutput(ui->viewfinder);
 
 	updateCameraActive(m_camera->isActive());
 	updateRecorderState(m_mediaRecorder->recorderState());
@@ -513,3 +566,33 @@ void MainWindow::saveMetaData()
 	m_mediaRecorder->setMetaData(data);
 }
 
+void MainWindow::onFrame(const QVideoFrame &frame)
+{
+    if (_clientVideo.state() != QAbstractSocket::ConnectedState)
+        return;
+    QVideoFrame copy(frame);
+
+    if (!copy.map(QVideoFrame::ReadOnly))
+        return;
+
+    // traiter l'image
+    QImage image = copy.toImage().scaled(800, 600, Qt::KeepAspectRatio);
+
+    if (image.isNull())
+        return;
+
+    copy.unmap();
+    QByteArray payload;
+    QBuffer buffer(&payload);
+
+    buffer.open(QIODevice::WriteOnly);
+
+    image.save(&buffer, "JPEG", 75);
+    QByteArray packet;
+    QDataStream ds(&packet, QIODevice::WriteOnly);
+
+    ds << quint32(payload.size());
+    packet.append(payload);
+
+    _clientVideo.write(packet);
+}
