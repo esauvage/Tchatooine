@@ -42,6 +42,9 @@ signals:
     void nouvMessage(QString message, bool isAncienMessage = false);
 	void connected();
 	void annuaireChanged();
+    void serveurIndisponible();
+    void portVideoDemande();
+    void portVideo(int port);
 };
 
 #endif // CLIENT_H

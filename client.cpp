@@ -16,7 +16,7 @@ Client::Client(QObject *parent) : QObject(parent), _ecrivain((QIODevice *)nullpt
 	connect(&_socket, &QTcpSocket::connected, this, &Client::onConnected);
 	connect(&_socket, &QTcpSocket::connected, this, &Client::connected);
 	connect(&_socket, &QTcpSocket::readyRead, this, &Client::processReadyRead);
-    connect(&_socket, &QTcpSocket::errorOccurred, this, &Client::reconnect);
+    connect(&_socket, &QTcpSocket::errorOccurred, this, &Client::serveurIndisponible);
     connect(&_socket, &QTcpSocket::disconnected, this, &Client::reconnect);
 
     _historique = new DbManager("historique");
@@ -32,7 +32,8 @@ void Client::onConnected()
 {
 	_ecrivain.setDevice(&_socket);
 	_lecteur.setDevice(&_socket);
-	envoie("quelPseudo", "?");
+    envoie("quelPortVideo", "?");
+    envoie("quelPseudo", "?");
 
     traiteAnciensMessages();
 }
@@ -92,7 +93,15 @@ void Client::traiteMessage(QMap <QString, QString> message) {
 		if (message["commande"_L1] == "quelPseudo") {
 			envoie("pseudo", _pseudos[_uuid]);
 		}
-		if (message["commande"_L1] == "pseudo") {
+        if (message["commande"_L1] == "quelPortVideo") {
+            emit portVideoDemande();
+        }
+        if (message["commande"_L1] == "portVideo") {
+            if (message.contains("parametre")) {
+                emit portVideo(message["parametre"].toInt());
+            }
+        }
+        if (message["commande"_L1] == "pseudo") {
 			if (message.contains("parametre")) {
 				_pseudos[QUuid::fromString(message["id"])] = message["parametre"];
 				emit annuaireChanged();

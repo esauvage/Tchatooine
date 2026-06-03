@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QLabel>
 #include "tchat.h"
 
 #include <QSystemTrayIcon>
@@ -40,6 +41,7 @@ protected:
 
 private slots:
 	void init();
+    void changeServeur();
 
 	void setCamera(const QCameraDevice &cameraDevice);
 
@@ -87,14 +89,12 @@ private slots:
 	void onClientConnected();
 	void onServeurConnected();
 	void affichePeers();
-	void onVideoConnected();
 
     void onFrame(const QVideoFrame &frame);
-    void processReadyRead();
-    void onVideoConnection();
+    void showPeerImage(const QUuid &pair, const QImage &img);
 
 private:
-	QActionGroup *videoDevicesGroup = nullptr;
+    QActionGroup *videoDevicesGroup = nullptr;
 
 	QMediaDevices m_devices;
 	std::unique_ptr<QImageCapture> m_imageCapture;
@@ -114,8 +114,6 @@ private:
 
     Tchat _tchat;
 	QSystemTrayIcon _trayIcon;
-    ServeurAvecUPNP _serveurVideo;
-	QTcpSocket _clientVideo;
-    QByteArray _videoBuffer;
+    QMap<QUuid, QLabel *> _labels;
 };
 #endif // MAINWINDOW_H

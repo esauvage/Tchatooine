@@ -20,16 +20,28 @@ public:
 	QStringList peers() const;
 	QUuid uuid() const;
 	UpnpManager &upnp();
+    ServeurAvecUPNP &serveurVideo();
+    bool canSendVideo();
+    qint64 sendVideoPacket(const QByteArray &packet);
 
 private:
     Client _client;
     ServeurAvecUPNP _serveur;
-	UpnpManager _upnp;
+    ServeurAvecUPNP _serveurVideo;
+    UpnpManager _upnp;
+    QTcpSocket _clientVideo;
 signals:
     void nouvMessage(QString message, bool isAncienMessage = false);
 	void clientConnected();
 	void serveurConnected();
 	void annuaireChanged();
+    void serveurIndisponible();
+    void peerImage(const QUuid &pair, const QImage &img);
+private slots:
+    void envoiePortVideo();
+    void connectToVideoServeur(int port);
+    void onVideoConnected();
+    void processReadyRead();
 };
 
 #endif // TCHAT_H

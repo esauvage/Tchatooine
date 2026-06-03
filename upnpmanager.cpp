@@ -50,7 +50,7 @@ int UpnpManager::redirectUPnP(uint16_t &portPublic, uint16_t portPrive) {
 
 #ifdef _WIN32
 	char wanaddr[16];
-	int status = UPNP_GetValidIGD(_devlist, _urls, _data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
+    int status = UPNP_GetValidIGD(_devlist, &_urls, &_data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
 #elif __linux__
 	int status = UPNP_GetValidIGD(_devlist, &_urls, &_data, lanaddr, sizeof(lanaddr));
 #endif

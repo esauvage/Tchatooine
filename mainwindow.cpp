@@ -39,15 +39,9 @@
 using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent), ui(new Ui::mainWindow), _serveurVideo(_tchat.upnp()) {
+    : QMainWindow(parent), ui(new Ui::mainWindow) {
 	ui->setupUi(this);
-	_serveurVideo.setPort(9159);
-	_serveurVideo.getUpNP();
-	_serveurVideo.demarre();
 
-	connect(&_clientVideo, &QTcpSocket::connected, this, &MainWindow::onVideoConnected);
-    // connect(&_serveurVideo, &QTcpServer::newConnection, this, &MainWindow::onVideoConnection);
-	_clientVideo.connectToHost(_tchat.upnp().ip(), _serveurVideo.port());
 	//Multimedia
 	// disable all buttons by default
 	updateCameraActive(false);
@@ -73,7 +67,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->cbxPair->addItem("localhost:9158");
     ui->cbxPair->addItem("176.187.157.48:9158");
-	ui->cbxPair->addItem("87.88.38.108:9158");
+    ui->cbxPair->addItem("87.88.38.108:9165");
 
 	// Check if the system tray is available
 	if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -95,8 +89,10 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(&_tchat, &Tchat::clientConnected, this, &MainWindow::onClientConnected);
 	connect(&_tchat, &Tchat::serveurConnected, this, &MainWindow::onServeurConnected);
 	connect(&_tchat, &Tchat::nouvMessage, this, &MainWindow::afficheMessage);
-	connect(&_tchat, &Tchat::annuaireChanged, this, &MainWindow::affichePeers);
-	connect(ui->takeImageButton, &QPushButton::clicked, this, &MainWindow::takeImage);
+    connect(&_tchat, &Tchat::annuaireChanged, this, &MainWindow::affichePeers);
+    connect(&_tchat, &Tchat::serveurIndisponible, this, &MainWindow::changeServeur);
+    connect(&_tchat, &Tchat::peerImage, this, &MainWindow::showPeerImage);
+    connect(ui->takeImageButton, &QPushButton::clicked, this, &MainWindow::takeImage);
 	connect(ui->stopButton, &QPushButton::clicked, this, &MainWindow::stopCamera);
 	connect(ui->recordButton, &QPushButton::clicked, this, &MainWindow::record);
 	connect(ui->pauseButton, &QPushButton::clicked, this, &MainWindow::pause);
@@ -126,46 +122,6 @@ void MainWindow::affichePeers()
 	ui->lblPeers->setText(_tchat.peers().join('\n'));
 }
 
-void MainWindow::onVideoConnected()
-{
-    connect(&_clientVideo, &QTcpSocket::readyRead, this, &MainWindow::processReadyRead);
-}
-
-void MainWindow::processReadyRead() {
-    QTcpSocket *client = qobject_cast<QTcpSocket*>(sender());
-    if (!client) return;
-	QDataStream in(client);
-
-	in.startTransaction();
-
-	QUuid uuid;
-	QByteArray imageData;
-
-	in >> uuid;
-	in >> imageData;
-
-	if (!in.commitTransaction())
-	{
-		return;
-	}
-	// 3. décoder
-	QImage image;
-	image.loadFromData(imageData, "JPEG");
-
-	if (!image.isNull()) {
-		processCapturedImage(0, image);
-	}
-}
-
-void MainWindow::onVideoConnection()
-{
-    QTcpSocket *client = _serveurVideo.nextPendingConnection();
-    // connect(client, &QTcpSocket::readyRead, this, &MainWindow::processReadyRead);
-    connect(client, &QTcpSocket::disconnected, client, &QObject::deleteLater);
-
-    // m_clients << client;
-}
-
 void MainWindow::afficheMessage(QString message, bool isAncienMessage)
 {
 	ui->lblMessages->setText(ui->lblMessages->text() + message + "\n");
@@ -189,6 +145,7 @@ void MainWindow::on_edtMessage_editingFinished()
 
 void MainWindow::on_cbxPair_currentIndexChanged(int index)
 {
+    ui->statusbar->showMessage("Connecting to " + ui->cbxPair->currentText());
 	auto pair = ui->cbxPair->currentText().split(':');
 	_tchat.init(pair.at(0), pair.at(1).toInt());
 }
@@ -245,6 +202,14 @@ void MainWindow::init()
     connect(_videoSink.get(), &QVideoSink::videoFrameChanged, this, &MainWindow::onFrame);
 
 	setCamera(QMediaDevices::defaultVideoInput());
+}
+
+void MainWindow::changeServeur()
+{
+    auto i = ui->cbxPair->currentIndex();
+    ++i;
+    i %= ui->cbxPair->count();
+    ui->cbxPair->setCurrentIndex(i);
 }
 
 void MainWindow::setCamera(const QCameraDevice &cameraDevice)
@@ -322,17 +287,50 @@ void MainWindow::updateRecordTime()
 	ui->statusbar->showMessage(str);
 }
 
+void MainWindow::showPeerImage(const QUuid &pair, const QImage &img){
+    if (!_labels.contains(pair)) {
+        _labels[pair] = new QLabel(ui->videoConf);
+        auto *layout = dynamic_cast<QGridLayout *>(ui->videoConf->layout());
+        if (!layout) {
+            return;
+        }
+        auto index = _labels.size();
+        auto nbCols = layout->columnCount();
+        auto nbRows = layout->rowCount();
+        if ((index >= nbCols * nbRows) && (nbRows > nbCols)){
+            nbCols++;
+            while (layout->count()) {
+                layout->takeAt(0);
+            }
+         }
+        for (int i = 0; i < _labels.keys().size(); ++i) {
+            int row = i / nbCols;
+            int col = i % nbCols;
+
+            layout->addWidget(_labels[_labels.keys()[i]], row, col);
+        }
+    }
+    auto label = _labels[pair];
+    QImage scaledImage =
+        img.scaled(label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    label->setPixmap(QPixmap::fromImage(scaledImage));
+    // label->setSizePolicy(QSizePolicy()); //Can't resize anymore
+    ui->stackedWidget->setCurrentIndex(2);
+}
+
 void MainWindow::processCapturedImage(int requestId, const QImage &img)
 {
-	Q_UNUSED(requestId);
-	QImage scaledImage =
-		img.scaled(ui->viewfinder->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    Q_UNUSED(requestId);
+    QImage scaledImage =
+        img.scaled(ui->viewfinder->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
-	ui->lastImagePreviewLabel->setPixmap(QPixmap::fromImage(scaledImage));
+    ui->lastImagePreviewLabel->setPixmap(QPixmap::fromImage(scaledImage));
+    ui->lastImagePreviewLabel->setSizePolicy(QSizePolicy()); //Can't resize anymore
 
-	// Display captured image for 4 seconds.
-	displayCapturedImage();
-	QTimer::singleShot(4000, this, &MainWindow::displayViewfinder);
+    // Display captured image for 4 seconds.
+    // displayCapturedImage();
+    // QTimer::singleShot(4000, this, &MainWindow::displayViewfinder);
 }
 
 void MainWindow::configureCaptureSettings()
@@ -562,10 +560,9 @@ void MainWindow::saveMetaData()
 
 void MainWindow::onFrame(const QVideoFrame &frame)
 {
-    if (_clientVideo.state() != QAbstractSocket::ConnectedState)
-        return;
-    QVideoFrame copy(frame);
+    if (!_tchat.canSendVideo()) return;
 
+    QVideoFrame copy(frame);
     if (!copy.map(QVideoFrame::ReadOnly))
         return;
 
@@ -588,5 +585,5 @@ void MainWindow::onFrame(const QVideoFrame &frame)
 	ds << _tchat.uuid();
 	ds << payload;
 
-    _clientVideo.write(packet);
+    _tchat.sendVideoPacket(packet);
 }
