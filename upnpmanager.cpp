@@ -13,8 +13,30 @@ UpnpManager::~UpnpManager() {
 	QString proto = "TCP";
 	for (auto port : _mappedPorts) {
 		QString strPort = QString::number(port);
-		UPNP_DeletePortMapping(_urls.controlURL, _data.first.servicetype, strPort.toLocal8Bit(), proto.toLocal8Bit(), nullptr);
+        int err = UPNP_DeletePortMapping(_urls.controlURL, _data.first.servicetype, strPort.toLocal8Bit(), proto.toLocal8Bit(), nullptr);
+        qDebug() << "DeletePortMapping:" << err << strupnperror(err);
 	}
+    for (int i = 0;; ++i)
+    {
+        char extPort[16];
+        char intClient[64];
+        char intPort[16];
+        char proto[8];
+        char desc[128];
+        char enabled[8];
+        char lease[32];
+        char remoteHost[64];
+
+        int err = UPNP_GetGenericPortMappingEntry( _urls.controlURL, _data.first.servicetype, QByteArray::number(i).constData(),
+            extPort, intClient, intPort, proto, desc, enabled, remoteHost, lease);
+
+        if (err != UPNPCOMMAND_SUCCESS)
+            break;
+
+        qDebug() << "Prot à supprimer : " << extPort << proto << intClient << intPort << desc;
+        err = UPNP_DeletePortMapping(_urls.controlURL, _data.first.servicetype, extPort, proto, nullptr);
+        qDebug() << "DeletePortMapping:" << err << strupnperror(err);
+    }
 	FreeUPNPUrls(&_urls);
 	if (_devlist)
 		freeUPNPDevlist(_devlist);
@@ -79,7 +101,7 @@ int UpnpManager::redirectUPnP(uint16_t &portPublic, uint16_t portPrive) {
 		proto.toLocal8Bit(),
 		nullptr,
 		intClient, intPort, desc, enabled, lease);
-	if (r == 0) {
+    if ((r == 0) && (QString(desc) != ("Tchatooine" + strPortPrive)) && (QString(intClient) == QString(lanaddr))) {
 		qDebug() << "Port déjà mappé, on skip :" << portPublic;
 		portPublic++;
 		redirectUPnP(portPublic, portPrive);
