@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QLabel>
 #include "tchat.h"
+#include "videoencoder.h"
 
 #include <QSystemTrayIcon>
 
@@ -94,7 +95,9 @@ private slots:
     void showPeerImage(const QUuid &pair, const QImage &img);
 
 private:
-    QActionGroup *videoDevicesGroup = nullptr;
+	void initEncodeur();
+
+	QActionGroup *videoDevicesGroup = nullptr;
 
 	QMediaDevices m_devices;
 	std::unique_ptr<QImageCapture> m_imageCapture;
@@ -115,5 +118,6 @@ private:
     Tchat _tchat;
 	QSystemTrayIcon _trayIcon;
     QMap<QUuid, QLabel *> _labels;
+	VideoEncoder _videoEncodeur;
 };
 #endif // MAINWINDOW_H

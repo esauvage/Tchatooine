@@ -88,7 +88,7 @@ qint64 Tchat::sendVideoPacket(const QByteArray &packet)
 void Tchat::connectToVideoServeur(int port)
 {
     connect(&_clientVideo, &QTcpSocket::connected, this, &Tchat::onVideoConnected);
-    _clientVideo.connectToHost(_upnp.ip(), port);
+	_clientVideo.connectToHost(_client.peerAddress(), port);
 }
 
 void Tchat::onVideoConnected()

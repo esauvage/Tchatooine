@@ -16,10 +16,10 @@ Client::Client(QObject *parent) : QObject(parent), _ecrivain((QIODevice *)nullpt
 	connect(&_socket, &QTcpSocket::connected, this, &Client::onConnected);
 	connect(&_socket, &QTcpSocket::connected, this, &Client::connected);
 	connect(&_socket, &QTcpSocket::readyRead, this, &Client::processReadyRead);
-    connect(&_socket, &QTcpSocket::errorOccurred, this, &Client::serveurIndisponible);
-    connect(&_socket, &QTcpSocket::disconnected, this, &Client::reconnect);
+	connect(&_socket, &QTcpSocket::errorOccurred, this, &Client::serveurIndisponible);
+	connect(&_socket, &QTcpSocket::disconnected, this, &Client::reconnect);
 
-    _historique = new DbManager("historique");
+	_historique = new DbManager("historique");
 }
 
 Client::~Client()

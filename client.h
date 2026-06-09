@@ -13,7 +13,7 @@ class Client : public QObject {
 	Q_OBJECT
 public:
 	explicit Client(QObject *parent = nullptr);
-  ~Client();
+	~Client();
 
 	void setUrl_pair(const QUrl &newUrl_pair);
 	bool envoie(const QString message);

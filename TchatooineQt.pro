@@ -9,6 +9,7 @@ CONFIG += c++23
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 INCLUDEPATH += /usr/include/miniupnpc\
+        /usr/include/
 
 win32:INCLUDEPATH += D:\EtienneArea\Personnel\miniupnp\miniupnpc\include\
 
@@ -23,6 +24,7 @@ SOURCES += \
     tchat.cpp \
     dbmanager.cpp \
     upnpmanager.cpp \
+    videoencoder.cpp \
     videosettings.cpp
 
 HEADERS += \
@@ -35,6 +37,7 @@ HEADERS += \
     tchat.h \
     dbmanager.h \
     upnpmanager.h \
+    videoencoder.h \
     videosettings.h
 
 FORMS += \
@@ -44,6 +47,11 @@ FORMS += \
     videosettings_mobile.ui
 win32:LIBS += -LD:\EtienneArea\Personnel\miniupnp\miniupnpc\build\Desktop_Qt_6_11_0_MinGW_64_bit-Debug
 LIBS += -lminiupnpc
+#sudo apt install libavcodec-dev libavutil-dev libswscale-dev
+
+LIBS += -lavcodec
+LIBS += -lavutil
+LIBS += -lswscale
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

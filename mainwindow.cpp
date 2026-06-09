@@ -36,6 +36,7 @@
 #include <QBuffer>
 #include <QDebug>
 
+
 using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -65,9 +66,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 	ui->edtPseudo->setText(pseudo);
 
-    ui->cbxPair->addItem("localhost:9158");
-    ui->cbxPair->addItem("176.187.157.48:9158");
-    ui->cbxPair->addItem("87.88.38.108:9165");
+	ui->cbxPair->addItem("87.88.38.108:9158");
+	ui->cbxPair->addItem("localhost:9158");
+	ui->cbxPair->addItem("176.187.157.48:9158");
 
 	// Check if the system tray is available
 	if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -86,6 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 		_trayIcon.show();
 	}
+	_videoEncodeur.init();
 	connect(&_tchat, &Tchat::clientConnected, this, &MainWindow::onClientConnected);
 	connect(&_tchat, &Tchat::serveurConnected, this, &MainWindow::onServeurConnected);
 	connect(&_tchat, &Tchat::nouvMessage, this, &MainWindow::afficheMessage);
@@ -573,6 +575,7 @@ void MainWindow::onFrame(const QVideoFrame &frame)
         return;
 
     copy.unmap();
+	_videoEncodeur.encode(440, 320);
     QByteArray payload;
     QBuffer buffer(&payload);
 
