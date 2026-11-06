@@ -11,7 +11,9 @@ CONFIG += c++23
 INCLUDEPATH += /usr/include/miniupnpc\
         /usr/include/
 
-win32:INCLUDEPATH += D:\EtienneArea\Personnel\miniupnp\miniupnpc\include\
+win32:INCLUDEPATH += D:\EtienneArea\Personnel\miniupnp\miniupnpc\include\ \
+E:\Qt\6.3.2\Src\qtwebengine\src\3rdparty\chromium\third_party\ffmpeg\ \
+E:\Qt\6.3.2\Src\qtwebengine\src\3rdparty\chromium\third_party\ffmpeg\chromium\config\Chrome\win\x64\
 
 SOURCES += \
     client.cpp \
@@ -45,13 +47,13 @@ FORMS += \
     mainwindow.ui \
     videosettings.ui \
     videosettings_mobile.ui
-win32:LIBS += -LD:\EtienneArea\Personnel\miniupnp\miniupnpc\build\Desktop_Qt_6_11_0_MinGW_64_bit-Debug
+win32:LIBS += -LD:\EtienneArea\Personnel\miniupnp\miniupnpc\build\Desktop_Qt_6_11_0_MinGW_64_bit-Debug -L
 LIBS += -lminiupnpc
 #sudo apt install libavcodec-dev libavutil-dev libswscale-dev
 
-LIBS += -lavcodec
-LIBS += -lavutil
-LIBS += -lswscale
+# LIBS += -lavcodec
+# LIBS += -lavutil
+# LIBS += -lswscale
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
